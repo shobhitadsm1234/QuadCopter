@@ -29,9 +29,16 @@ void loop() {
   
   calc_xy_angles((float)ax/16384, (float)ay/16384, (float)az/16384);  //Calculate angles from accelerometer
   
+  pitch = comp_filter_pitch(pitch, gy);
+  roll = comp_filter_roll(roll, gz);
+  
   //Print out pitch and roll
-  Serial.print(comp_filter_pitch(pitch, gy)); Serial.print("\t");
-  Serial.println(comp_filter_roll(roll, gz));
+  Serial.print(pitch); Serial.print("\t");
+  Serial.println(roll);
+  
+  //Start of PID controller
+  
+  //End of PID controller
   
   delay(20);
 }
