@@ -29,8 +29,8 @@ void loop() {
   
   calc_xy_angles((float)ax/16384, (float)ay/16384, (float)az/16384);  //Calculate angles from accelerometer
   
-  pitch = comp_filter_pitch(pitch, gy);
-  roll = comp_filter_roll(roll, gz);
+  pitch = (comp_filter_pitch(pitch, gy)) + 2.9;
+  roll = (comp_filter_roll(roll, gz)) + 1.41;
   
   //Start of PID controller
   float actual = pitch, desired = 0, intThreshold = 10, integral, lastActual, driveValue;
