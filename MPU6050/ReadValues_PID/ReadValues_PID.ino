@@ -32,13 +32,30 @@ void loop() {
   pitch = comp_filter_pitch(pitch, gy);
   roll = comp_filter_roll(roll, gz);
   
+  //Start of PID controller
+  float actual = pitch, desired = 0, intThreshold = 10, integral, lastActual, driveValue;
+  float error = desired - actual;
+  float P, I, D;
+  float kP = 0.2, kI = 2, kD = 0.1;
+  float scaleFactor = 1;
+  
+  if (abs(error < intThreshold)) {
+    integral += error;
+  } else {
+    integral = 0;
+  }
+  
+  P = error * kP;
+  I = integral * kI;
+  D = (lastActual - actual) * kD;
+  driveValue = P + I + D;
+  driveValue = driveValue * scaleFactor;
+  //End of PID controller
+  
   //Print out pitch and roll
   Serial.print(pitch); Serial.print("\t");
-  Serial.println(roll);
-  
-  //Start of PID controller
-  
-  //End of PID controller
+  Serial.print(roll); Serial.print("\t");
+  Serial.println(driveValue);
   
   delay(20);
 }
