@@ -36,23 +36,24 @@ void loop() {
   float actual = pitch, desired = 0, intThreshold = 10, integral, lastActual, driveValue;
   float error = desired - actual;
   float P, I, D;
-  float kP = 0.2, kI = 2, kD = 0.1;
+  float kP = 0.2, kI = 2, kD = 0.1; //Gain values
   float scaleFactor = 1;
   
-  if (abs(error < intThreshold)) {
+  if (abs(error < intThreshold)) { //Stop integral windup
     integral += error;
   } else {
     integral = 0;
   }
   
+  //Calculate P K and I
   P = error * kP;
   I = integral * kI;
   D = (lastActual - actual) * kD;
   driveValue = P + I + D;
-  driveValue = driveValue * scaleFactor;
+  driveValue = driveValue * scaleFactor; //Used to get end value to desired range;
   //End of PID controller
   
-  //Print out pitch and roll
+  //Print out pitch, roll, and driveValue
   Serial.print(pitch); Serial.print("\t");
   Serial.print(roll); Serial.print("\t");
   Serial.println(driveValue);
