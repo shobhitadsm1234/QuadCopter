@@ -1,10 +1,24 @@
+//NOTE: This code requires I2Cdev and MPU6050 libaries found here: https://github.com/jrowberg/i2cdevlib
 #include <Servo.h>
+#include "I2Cdev.h"
+#include "MPU6050.h"
+#include "Wire.h"
+
+MPU6050 accelgyro;  //Create new MPU6050 object called accelgyro
+
+//Define variables to store gyroscope and accelerometer data
+int16_t ax, ay, az;
+int16_t gx, gy, gz;
 
 Servo ESC1, ESC2, ESC3, ESC4;
 int checkSignal = 0;  //Variable used to check if connection with controller is still active
 
 void setup() {
+  Wire.begin();
   Serial.begin(9600);  //Start Serial connection
+  
+  //Initialize MPU6050 and check to see if it connected successfully
+  accelgyro.initialize();
   
   //Attach electronic speed controlers to their servo objects.
   ESC1.attach(8);
@@ -31,8 +45,14 @@ void setup() {
   //End configuring minimum and maximum throttle settings
 }
 
-void loop() {
+//Define variables for acceleromter/gyroscope
+float angle_pitch, angle_roll, timeBeginPitch = millis(), timeBeginRoll = millis(), pitch, roll;
 
+//Motor values from controller
+int motor1Value = 0, motor2Value = 0, motor3Value = 0, motor4Value = 0;
+
+void loop() {
+  int motor1Value_s = 0, motor2Value_s = 0, motor3Value_s = 0, motor4Value_s = 0;
   if (Serial.available()) {
     char data[20];  //Stores data coming in over serial until it can be processed
     int i=0;  //Counter variable to go through new serial data with;
@@ -74,17 +94,123 @@ void loop() {
       String holdMot1 = String(motor[0]); String holdMot2 = String(motor[1]);
       String holdMot3 = String(motor[2]); String holdMot4 = String(motor[3]);
       
-      //Convert strings to integers and write values to Electronic Speed Controllers
-      ESC1.write(holdMot1.toInt()); ESC2.write(holdMot2.toInt());
-      ESC3.write(holdMot3.toInt()); ESC4.write(holdMot4.toInt());
+      //Convert strings to integers and store in motor value variables
+      motor1Value = holdMot1.toInt(); motor2Value = holdMot2.toInt();
+      motor3Value = holdMot3.toInt(); motor4Value = holdMot4.toInt();
     }
   }
   
-  //If last signal was over 500 milliseconds ago then kill motors
-  if(checkSignal >= 500) {
+  //Start stabilization code
+  accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);  //Get raw data values
+  gx = (gx/131)-31;  //Divide gyroscope data by 131 to get degrees per second (-31 is an offset for this specific module)
+  gy = gy/131;
+  gz = gz/131;
+  
+  calc_xy_angles((float)ax/16384, (float)ay/16384, (float)az/16384);  //Calculate angles from accelerometer
+  
+  pitch = (comp_filter_pitch(pitch, gy)) + 2.9;
+  roll = (comp_filter_roll(roll, gz)) + 1.41;
+  
+  //Start of PID controller
+  float actual = pitch, desired = 0, intThreshold = 10, integral, lastActual, driveValue;
+  float error = desired - actual;
+  float P, I, D;
+  float kP = 0.2, kI = 2, kD = 0.1; //Gain values
+  float scaleFactor = 3;
+  
+  if (abs(error < intThreshold)) { //Stop integral windup
+    integral += error;
+  } else {
+    integral = 0;
+  }
+  
+  //Calculate P K and I
+  P = error * kP;
+  I = integral * kI;
+  D = (lastActual - actual) * kD;
+  driveValue = P + I + D;
+  driveValue = driveValue * scaleFactor; //Used to get end value to desired range;
+  
+  //Add change to motors
+  int change;
+  
+  if (driveValue > 0) {
+    change = driveValue / 2;
+    motor1Value_s = motor1Value + change;
+    motor3Value_s = motor3Value - change;
+  } else {
+    change = (driveValue * -1) / 2;
+    motor1Value_s = motor1Value - change;
+    motor3Value_s = motor3Value + change;
+  }
+  
+  //End of PID controller
+  
+  /*
+  //Print out pitch, roll, and driveValue
+  Serial.print(pitch); Serial.print("\t");
+  Serial.print(roll); Serial.print("\t");
+  Serial.println(driveValue);*/
+  
+  //Write motor values to motors
+  ESC1.write(motor1Value_s); ESC2.write(motor2Value);
+  ESC3.write(motor3Value_s); ESC4.write(motor4Value);
+  
+  Serial.print(motor1Value_s); Serial.print("\t");
+  Serial.print(motor2Value); Serial.print("\t");
+  Serial.print(motor3Value_s); Serial.print("\t");
+  Serial.print(motor4Value); Serial.print("\t");
+  Serial.println(change);
+  
+  delay(10);
+  //End stabilization code
+  
+  //If last signal was over one minute ago then kill motors
+  if(checkSignal >= 60000) {
     ESC1.write(0); ESC2.write(0); ESC3.write(0); ESC4.write(0);
   }
   
   delay(1);  //Delay 1 millisecond to wait for new data
   checkSignal++;  //Add 1 millsecond to time when data was last received
+}
+
+//Function to calculate angles based off of accelerometer
+void calc_xy_angles(float accel_value_x, float accel_value_y, float accel_value_z){
+  
+  float x_val, y_val, z_val, result;
+  float accel_center_x = .05, accel_center_y = -.02, accel_center_z = -.06;  //Offsets to zero acceleromter data
+  unsigned long x2, y2, z2;
+   
+  //Find value after removing offset
+  x_val = (float)accel_value_x-(float)accel_center_x;
+  y_val = (float)accel_value_y-(float)accel_center_y;
+  z_val = (float)accel_value_z-(float)accel_center_z;
+  
+  //Use trigonometry to calculate angles from accelerations
+  roll = atan(y_val/sqrt(pow(x_val,2) + pow(z_val,2)));
+  pitch = atan(z_val/sqrt(pow(y_val,2) + pow(x_val,2))); 
+  
+  //Convert angles from radians to degrees
+  pitch = pitch * (180.0/PI);
+  roll = roll * (180.0/PI) ;
+}
+
+
+//Functions to combine gyroscope and acceleromter data
+float comp_filter_pitch(float accel, float gyro) {
+  float dt = ((timeBeginPitch - millis())/1000) * -1; //Calculate time since last run
+  timeBeginPitch = millis(); //Reset last run time
+  
+  angle_pitch = (0.98) * (angle_pitch + (gyro * dt)) + (.02) * accel; //Combine gyro and accelerometer data using complimentary filter
+  
+  return angle_pitch; //Return value
+}
+
+float comp_filter_roll(float accel, float gyro) {
+  float dt = ((timeBeginRoll - millis())/1000); //Calculate time since last run
+  timeBeginRoll = millis(); //Reset last run time
+  
+  angle_roll = (0.98) * (angle_roll + (gyro * dt)) + (.02) * accel; //Combine gyro and acceleromter data using complimntary filter
+  
+  return angle_roll; //Return value
 }
