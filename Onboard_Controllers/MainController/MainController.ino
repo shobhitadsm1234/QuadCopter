@@ -115,8 +115,8 @@ void loop() {
   float actual = pitch, desired = 0, intThreshold = 10, integral, lastActual, driveValue;
   float error = desired - actual;
   float P, I, D;
-  float kP = 0.2, kI = 2, kD = 0.1; //Gain values
-  float scaleFactor = 3;
+  float kP = 0.7, kI = 2, kD = 0.1; //Gain values
+  float scaleFactor = 1;
   
   if (abs(error < intThreshold)) { //Stop integral windup
     integral += error;
@@ -153,8 +153,13 @@ void loop() {
   Serial.println(driveValue);*/
   
   //Write motor values to motors
-  ESC1.write(motor1Value_s); ESC2.write(motor2Value);
-  ESC3.write(motor3Value_s); ESC4.write(motor4Value);
+  if (motor3Value > 30) {
+    ESC1.write(motor1Value_s); ESC2.write(motor2Value);
+    ESC3.write(motor3Value_s); ESC4.write(motor4Value);
+  } else {
+    ESC1.write(0); ESC2.write(0);
+    ESC3.write(0); ESC4.write(0);
+  }
   
   Serial.print(motor1Value_s); Serial.print("\t");
   Serial.print(motor2Value); Serial.print("\t");
