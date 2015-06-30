@@ -3,6 +3,7 @@
 #include "I2Cdev.h"
 #include "MPU6050.h"
 #include "Wire.h"
+#include "math.h"
 
 MPU6050 accelgyro;  //Create new MPU6050 object called accelgyro
 
@@ -50,6 +51,9 @@ float angle_pitch, angle_roll, timeBeginPitch = millis(), timeBeginRoll = millis
 
 //Motor values from controller
 int motor1Value = 0, motor2Value = 0, motor3Value = 0, motor4Value = 0;
+
+//Variables for PID control loop
+float lastActual, integral;
 
 void loop() {
   int motor1Value_s = 0, motor2Value_s = 0, motor3Value_s = 0, motor4Value_s = 0;
@@ -112,13 +116,13 @@ void loop() {
   roll = (comp_filter_roll(roll, gz)) + 1.41;
   
   //Start of PID controller
-  float actual = pitch, desired = 0, intThreshold = 10, integral, lastActual, driveValue;
+  float actual = pitch, desired = 0, intThreshold = 1, driveValue;
   float error = desired - actual;
   float P, I, D;
-  float kP = 0.7, kI = 2, kD = 0.1; //Gain values
+  float kP = 1.2, kI = .005, kD = 8; //Gain values  1.1, 0, 7
   float scaleFactor = 1;
   
-  if (abs(error < intThreshold)) { //Stop integral windup
+  if ((abs(error < intThreshold) && (pitch > 3.5)) || (abs(error > intThreshold) && (pitch < -3.5))) { //Stop integral windup
     integral += error;
   } else {
     integral = 0;
@@ -127,10 +131,10 @@ void loop() {
   //Calculate P K and I
   P = error * kP;
   I = integral * kI;
-  D = (lastActual - actual) * kD;
+  D = ((int)lastActual - (int)actual) * kD;
   driveValue = P + I + D;
   driveValue = driveValue * scaleFactor; //Used to get end value to desired range;
-  
+  lastActual = actual;
   //Add change to motors
   int change;
   
@@ -153,19 +157,20 @@ void loop() {
   Serial.println(driveValue);*/
   
   //Write motor values to motors
-  if (motor3Value > 30) {
+  if (motor3Value > 30 && motor4Value == 0) {
     ESC1.write(motor1Value_s); ESC2.write(motor2Value);
     ESC3.write(motor3Value_s); ESC4.write(motor4Value);
   } else {
-    ESC1.write(0); ESC2.write(0);
-    ESC3.write(0); ESC4.write(0);
+    ESC1.write(motor1Value); ESC2.write(0);
+    ESC3.write(motor3Value); ESC4.write(0);
   }
   
   Serial.print(motor1Value_s); Serial.print("\t");
   Serial.print(motor2Value); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
   Serial.print(motor4Value); Serial.print("\t");
-  Serial.println(change);
+  Serial.print(pitch); Serial.print("\t");
+  Serial.println(integral/2);
   
   delay(10);
   //End stabilization code
