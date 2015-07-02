@@ -6,7 +6,7 @@ char str1[4];
 
 void loop() {
   int potValue = analogRead(A0);
-  potValue = map(potValue, 0, 1023, 0, 179);
+  potValue = map(potValue, 0, 1023, 0, 149);
   
   itoa(potValue, str1, 10);
   
