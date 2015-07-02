@@ -53,7 +53,7 @@ float angle_pitch, angle_roll, timeBeginPitch = millis(), timeBeginRoll = millis
 int motor1Value = 0, motor2Value = 0, motor3Value = 0, motor4Value = 0;
 
 //Variables for PID control loop
-float lastActual, integral;
+float lastActual_P, integral_P, lastActual_R, integral_R;
 
 void loop() {
   int motor1Value_s = 0, motor2Value_s = 0, motor3Value_s = 0, motor4Value_s = 0;
@@ -116,37 +116,73 @@ void loop() {
   roll = (comp_filter_roll(roll, gz)) + 1.41;
   
   //Start of PID controller
-  float actual = pitch, desired = 0, intThreshold = 1, driveValue;
-  float error = desired - actual;
-  float P, I, D;
-  float kP = 1.2, kI = .005, kD = 8; //Gain values  1.1, 0, 7
-  float scaleFactor = 1;
+  //Start pitch section
+  float actual_P = pitch, desired_P = 0, intThreshold_P = 1, driveValue_P;
+  float error_P = desired_P - actual_P;
+  float P_P, I_P, D_P;
+  float kP_P = 1.2, kI_P = .005, kD_P = 8; //Gain values  1.1, 0, 7
+  float scaleFactor_P = 1;
   
-  if ((abs(error < intThreshold) && (pitch > 3.5)) || (abs(error > intThreshold) && (pitch < -3.5))) { //Stop integral windup
-    integral += error;
+  if ((abs(error_P < intThreshold_P) && (pitch > 3.5)) || (abs(error_P > intThreshold_P) && (pitch < -3.5))) { //Stop integral windup
+    integral_P += error_P;
   } else {
-    integral = 0;
+    integral_P = 0;
   }
   
   //Calculate P K and I
-  P = error * kP;
-  I = integral * kI;
-  D = ((int)lastActual - (int)actual) * kD;
-  driveValue = P + I + D;
-  driveValue = driveValue * scaleFactor; //Used to get end value to desired range;
-  lastActual = actual;
+  P_P = error_P * kP_P;
+  I_P = integral_P * kI_P;
+  D_P = ((int)lastActual_P - (int)actual_P) * kD_P;
+  driveValue_P = P_P + I_P + D_P;
+  driveValue_P = driveValue_P * scaleFactor_P; //Used to get end value to desired range;
+  lastActual_P = actual_P;
   //Add change to motors
-  int change;
+  int change_P;
   
-  if (driveValue > 0) {
-    change = driveValue / 2;
-    motor1Value_s = motor1Value + change;
-    motor3Value_s = motor3Value - change;
+  if (driveValue_P > 0) {
+    change_P = driveValue_P / 2;
+    motor1Value_s = motor1Value + change_P;
+    motor3Value_s = motor3Value - change_P;
   } else {
-    change = (driveValue * -1) / 2;
-    motor1Value_s = motor1Value - change;
-    motor3Value_s = motor3Value + change;
+    change_P = (driveValue_P * -1) / 2;
+    motor1Value_s = motor1Value - change_P;
+    motor3Value_s = motor3Value + change_P;
   }
+  //End pitch section
+  
+  //Start roll section
+  float actual_R = roll, desired_R = 0, intThreshold_R = 1, driveValue_R;
+  float error_R = desired_R - actual_R;
+  float P_R, I_R, D_R;
+  float kP_R = 1.2, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
+  float scaleFactor_R = 1;
+  
+  if ((abs(error_R < intThreshold_R) && (pitch > 3.5)) || (abs(error_R > intThreshold_R) && (pitch < -3.5))) { //Stop integral windup
+    integral_R += error_R;
+  } else {
+    integral_R = 0;
+  }
+  
+  //Calculate P K and I
+  P_R = error_R * kP_R;
+  I_R = integral_R * kI_R;
+  D_R = ((int)lastActual_R - (int)actual_R) * kD_R;
+  driveValue_R = P_R + I_R + D_R;
+  driveValue_R = driveValue_R * scaleFactor_R; //Used to get end value to desired range;
+  lastActual_R = actual_R;
+  //Add change to motors
+  int change_R;
+  
+  if (driveValue_R > 0) {
+    change_R = driveValue_R / 2;
+    motor2Value_s = motor2Value + change_R;
+    motor4Value_s = motor4Value - change_R;
+  } else {
+    change_R = (driveValue_R * -1) / 2;
+    motor2Value_s = motor2Value - change_R;
+    motor4Value_s = motor4Value + change_R;
+  }
+  //End roll section
   
   //End of PID controller
   
@@ -156,28 +192,31 @@ void loop() {
   Serial.print(roll); Serial.print("\t");
   Serial.println(driveValue);*/
   
-  //Write motor values to motors
-  if (motor3Value > 30 && motor4Value == 0) {
-    ESC1.write(motor1Value_s); ESC2.write(motor2Value);
-    ESC3.write(motor3Value_s); ESC4.write(motor4Value);
-  } else {
-    ESC1.write(motor1Value); ESC2.write(0);
-    ESC3.write(motor3Value); ESC4.write(0);
-  }
   
-  Serial.print(motor1Value_s); Serial.print("\t");
+  //*ERASE*
+  /*Serial.print(motor1Value_s); Serial.print("\t");
   Serial.print(motor2Value); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
   Serial.print(motor4Value); Serial.print("\t");
   Serial.print(pitch); Serial.print("\t");
-  Serial.println(integral/2);
+  Serial.println(integral_P/2);
   
-  delay(10);
+  delay(10);*/ //*ERASE*
+  
   //End stabilization code
   
   //If last signal was over one minute ago then kill motors
   if(checkSignal >= 60000) {
-    ESC1.write(0); ESC2.write(0); ESC3.write(0); ESC4.write(0);
+    motor1Value = 0; motor2Value = 0; motor3Value = 0; motor4Value = 0;
+  }
+  
+  //Write motor values to motors
+  if (motor1Value > 30 && motor2Value > 30 && motor3Value > 30 && motor4Value > 30)  {
+    ESC1.write(motor1Value_s); ESC2.write(motor2Value);
+    ESC3.write(motor3Value_s); ESC4.write(motor4Value);
+  } else {
+    ESC1.write(0); ESC2.write(0);
+    ESC3.write(0); ESC4.write(0);
   }
   
   delay(1);  //Delay 1 millisecond to wait for new data
