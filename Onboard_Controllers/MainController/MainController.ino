@@ -61,7 +61,7 @@ void loop() {
     char data[20];  //Stores data coming in over serial until it can be processed
     int i=0;  //Counter variable to go through new serial data with;
     
-    delay(50); //Wait to receive all data
+    delay(15); //Wait to receive all data
     
     while(Serial.available() && i<20) {  //Loop through all characters in serial data
       data[i++] = Serial.read();  //Add new data to "data" one character at a time
@@ -117,16 +117,24 @@ void loop() {
   
   //Start of PID controller
   //Start pitch section
-  float actual_P = pitch, desired_P = 0, intThreshold_P = 1, driveValue_P;
+  float actual_P = pitch+4, desired_P = 0, intThreshold_P = 1, driveValue_P;
   float error_P = desired_P - actual_P;
   float P_P, I_P, D_P;
-  float kP_P = 1.2, kI_P = .005, kD_P = 8; //Gain values  1.1, 0, 7
+  float kP_P = 1.5, kI_P = .005, kD_P = 8; //Gain values  1.1, .005, 7
   float scaleFactor_P = 1;
   
   if ((abs(error_P < intThreshold_P) && (pitch > 3.5)) || (abs(error_P > intThreshold_P) && (pitch < -3.5))) { //Stop integral windup
     integral_P += error_P;
   } else {
     integral_P = 0;
+  }
+  
+  if ((pitch < 4) && (pitch > -4)) {
+    kD_P = 12;
+  }
+  
+  if ((pitch < 3) && (pitch > -3)) {
+    kP_P = 1.2;
   }
   
   //Calculate P K and I
@@ -154,13 +162,21 @@ void loop() {
   float actual_R = roll, desired_R = 0, intThreshold_R = 1, driveValue_R;
   float error_R = desired_R - actual_R;
   float P_R, I_R, D_R;
-  float kP_R = 1.2, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
+  float kP_R = 1.5, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
   float scaleFactor_R = 1;
   
   if ((abs(error_R < intThreshold_R) && (pitch > 3.5)) || (abs(error_R > intThreshold_R) && (pitch < -3.5))) { //Stop integral windup
     integral_R += error_R;
   } else {
     integral_R = 0;
+  }
+  
+  if ((roll < 4) && (roll > -4)) {
+    kD_R = 12;
+  }
+  
+  if ((roll < 3) && (roll > -3)) {
+    kP_R = 1.2;
   }
   
   //Calculate P K and I
@@ -194,24 +210,25 @@ void loop() {
   
   
   //*ERASE*
-  /*Serial.print(motor1Value_s); Serial.print("\t");
+  /*
+  Serial.print(motor1Value_s); Serial.print("\t");
   Serial.print(motor2Value); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
   Serial.print(motor4Value); Serial.print("\t");
   Serial.print(pitch); Serial.print("\t");
-  Serial.println(integral_P/2);
+  Serial.println(kD_P);*/
   
-  delay(10);*/ //*ERASE*
+  delay(30); //*ERASE*
   
   //End stabilization code
   
   //If last signal was over one minute ago then kill motors
-  if(checkSignal >= 60000) {
+  if(checkSignal >= 10000) {
     motor1Value = 0; motor2Value = 0; motor3Value = 0; motor4Value = 0;
   }
   
   //Write motor values to motors
-  if (motor1Value > 30 && motor2Value > 30 && motor3Value > 30 && motor4Value > 30)  {
+  if (motor1Value > 30 && motor2Value >= 0 && motor3Value > 30 && motor4Value >= 0)  {
     ESC1.write(motor1Value_s); ESC2.write(motor2Value);
     ESC3.write(motor3Value_s); ESC4.write(motor4Value);
   } else {

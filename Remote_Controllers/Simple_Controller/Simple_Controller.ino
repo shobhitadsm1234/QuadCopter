@@ -24,5 +24,5 @@ void loop() {
   strcat(final, "\n");
   
   Serial.print(final);
-  delay(75);
+  delay(250);
 }
