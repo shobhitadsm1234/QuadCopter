@@ -24,7 +24,9 @@ void setup() {
 }
 
 ISR(TIMER1_COMPA_vect) {
+  delay(10);
   Serial.println("H");
+  delay(10);
 }
 
 //Setup variables

@@ -69,7 +69,7 @@ void loop() {
     checkSignal = 0;  //Reset time since last signal was received
     data[i++] = '\0';  //remove
 
-    if(i>2) {
+    if(i>5) {
       char motor[4][5];  //Create two dimensional array holding all 4 motor values
       int currentMotor = 0, consecNums = 0;
       
@@ -87,6 +87,8 @@ void loop() {
         } else if (data[a] == '\0' || data[a] == '\n') {  //If a null character is found end data parsing
           motor[4][consecNums] = '\0';
           break;
+        } else if (data[a] == 'H') {
+          goto bailout;
         } else {  //If anything else is found add it to the current motors value
           motor[currentMotor][consecNums] = data[a];
           consecNums++;
@@ -102,6 +104,8 @@ void loop() {
       motor3Value = holdMot3.toInt(); motor4Value = holdMot4.toInt();
     }
   }
+  
+  bailout:
   
   //Start stabilization code
   accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);  //Get raw data values
@@ -222,7 +226,7 @@ void loop() {
   //End stabilization code
   
   //If last signal was over one minute ago then kill motors
-  if(checkSignal >= 10000) {
+  if(checkSignal >= 200) {
     motor1Value = 0; motor2Value = 0; motor3Value = 0; motor4Value = 0;
   }
   
