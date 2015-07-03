@@ -20,7 +20,6 @@ void loop() {
   strcat(final, str1);
   strcat(final, ",");
   strcat(final, str1);
-  //strcat(final, "\0");
   strcat(final, "\n");
   
   Serial.print(final);
