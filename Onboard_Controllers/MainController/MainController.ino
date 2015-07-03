@@ -123,7 +123,7 @@ void loop() {
   float actual_P = pitch+4, desired_P = 0, intThreshold_P = 1, driveValue_P;
   float error_P = desired_P - actual_P;
   float P_P, I_P, D_P;
-  float kP_P = 1.5, kI_P = .005, kD_P = 8; //Gain values  1.1, .005, 7
+  float kP_P = 1.7, kI_P = .005, kD_P = 8; //Gain values  1.1, .005, 7
   float scaleFactor_P = 1;
   
   if ((abs(error_P < intThreshold_P) && (pitch > 3.5)) || (abs(error_P > intThreshold_P) && (pitch < -3.5))) { //Stop integral windup
@@ -162,13 +162,13 @@ void loop() {
   //End pitch section
   
   //Start roll section
-  float actual_R = roll, desired_R = 0, intThreshold_R = 1, driveValue_R;
+  float actual_R = roll-4, desired_R = 0, intThreshold_R = 1, driveValue_R;
   float error_R = desired_R - actual_R;
   float P_R, I_R, D_R;
-  float kP_R = 1.5, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
+  float kP_R = 1.7, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
   float scaleFactor_R = 1;
   
-  if ((abs(error_R < intThreshold_R) && (pitch > 3.5)) || (abs(error_R > intThreshold_R) && (pitch < -3.5))) { //Stop integral windup
+  if ((abs(error_R < intThreshold_R) && (roll > 3.5)) || (abs(error_R > intThreshold_R) && (roll < -3.5))) { //Stop integral windup
     integral_R += error_R;
   } else {
     integral_R = 0;
@@ -194,12 +194,12 @@ void loop() {
   
   if (driveValue_R > 0) {
     change_R = driveValue_R / 2;
-    motor2Value_s = motor2Value + change_R;
-    motor4Value_s = motor4Value - change_R;
-  } else {
-    change_R = (driveValue_R * -1) / 2;
     motor2Value_s = motor2Value - change_R;
     motor4Value_s = motor4Value + change_R;
+  } else {
+    change_R = (driveValue_R * -1) / 2;
+    motor2Value_s = motor2Value + change_R;
+    motor4Value_s = motor4Value - change_R;
   }
   //End roll section
   
@@ -213,13 +213,13 @@ void loop() {
   
   
   //*ERASE*
-  /*
+  
   Serial.print(motor1Value_s); Serial.print("\t");
   Serial.print(motor2Value); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
   Serial.print(motor4Value); Serial.print("\t");
   Serial.print(pitch); Serial.print("\t");
-  Serial.println(kD_P);*/
+  Serial.println(kD_P);
   
   delay(30); //*ERASE*
   
@@ -232,8 +232,8 @@ void loop() {
   
   //Write motor values to motors
   if (motor1Value > 30 && motor2Value >= 0 && motor3Value > 30 && motor4Value >= 0)  {
-    ESC1.write(motor1Value_s); ESC2.write(motor2Value);
-    ESC3.write(motor3Value_s); ESC4.write(motor4Value);
+    ESC1.write(motor1Value_s); ESC2.write(motor2Value_s);
+    ESC3.write(motor3Value_s); ESC4.write(motor4Value_s);
   } else {
     ESC1.write(0); ESC2.write(0);
     ESC3.write(0); ESC4.write(0);
