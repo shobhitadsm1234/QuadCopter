@@ -3,7 +3,6 @@
 #include "I2Cdev.h"
 #include "MPU6050.h"
 #include "Wire.h"
-#include "math.h"
 
 MPU6050 accelgyro;  //Create new MPU6050 object called accelgyro
 
@@ -70,7 +69,7 @@ void loop() {
     checkSignal = 0;  //Reset time since last signal was received
     data[i++] = '\0';  //remove
 
-    if(i>0) {
+    if(i>2) {
       char motor[4][5];  //Create two dimensional array holding all 4 motor values
       int currentMotor = 0, consecNums = 0;
       
