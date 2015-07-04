@@ -120,7 +120,7 @@ void loop() {
   
   //Start of PID controller
   //Start pitch section
-  float actual_P = pitch+4, desired_P = 0, intThreshold_P = 1, driveValue_P;
+  float actual_P = pitch, desired_P = 0, intThreshold_P = 1, driveValue_P;
   float error_P = desired_P - actual_P;
   float P_P, I_P, D_P;
   float kP_P = 1.7, kI_P = .005, kD_P = 8; //Gain values  1.1, .005, 7
@@ -162,7 +162,7 @@ void loop() {
   //End pitch section
   
   //Start roll section
-  float actual_R = roll-4, desired_R = 0, intThreshold_R = 1, driveValue_R;
+  float actual_R = roll, desired_R = 0, intThreshold_R = 1, driveValue_R;
   float error_R = desired_R - actual_R;
   float P_R, I_R, D_R;
   float kP_R = 1.7, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
