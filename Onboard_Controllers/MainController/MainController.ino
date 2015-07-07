@@ -17,6 +17,10 @@ void setup() {
   Wire.begin();
   Serial.begin(9600);  //Start Serial connection
   
+  pinMode(50, INPUT_PULLUP);
+  
+  attachInterrupt(4, propellorLockout, LOW); //Setup interrupt on pin 19
+  
   //Initialize MPU6050 and check to see if it connected successfully
   accelgyro.initialize();
   
@@ -26,21 +30,23 @@ void setup() {
   ESC3.attach(10);
   ESC4.attach(11);
   
-  //Start configuring minimum and maximum throttle settings
-  for (int i = 0; i < 25; i++) {
-    ESC1.write(179);
-    ESC2.write(179);
-    ESC3.write(179);
-    ESC4.write(179);
-    delay(75);
-  }
-  
-  for (int i = 0; i < 25; i++) {
-    ESC1.write(0);
-    ESC2.write(0);
-    ESC3.write(0);
-    ESC4.write(0);
-    delay(75);
+  //Start configuring minimum and maximum throttle settings if switch is on
+  if (digitalRead(50) == LOW) {
+    for (int i = 0; i < 25; i++) {
+      ESC1.write(179);
+      ESC2.write(179);
+      ESC3.write(179);
+      ESC4.write(179);
+      delay(75);
+    }
+    
+    for (int i = 0; i < 25; i++) {
+      ESC1.write(0);
+      ESC2.write(0);
+      ESC3.write(0);
+      ESC4.write(0);
+      delay(75);
+    }
   }
   //End configuring minimum and maximum throttle settings
 }
@@ -282,4 +288,11 @@ float comp_filter_roll(float accel, float gyro) {
   angle_roll = (0.98) * (angle_roll + (gyro * dt)) + (.02) * accel; //Combine gyro and acceleromter data using complimntary filter
   
   return angle_roll; //Return value
+}
+
+void propellorLockout() {
+  ESC1.write(0);
+  ESC2.write(0);
+  ESC3.write(0);
+  ESC4.write(0);
 }
