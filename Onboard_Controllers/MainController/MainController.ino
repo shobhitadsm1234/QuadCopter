@@ -10,8 +10,12 @@ MPU6050 accelgyro;  //Create new MPU6050 object called accelgyro
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
+float prevgy;
+
 Servo ESC1, ESC2, ESC3, ESC4;
 int checkSignal = 0;  //Variable used to check if connection with controller is still active
+
+bool motorsOn = false;
 
 void setup() {
   Wire.begin();
@@ -126,30 +130,37 @@ void loop() {
   
   //Start of PID controller
   //Start pitch section
-  float actual_P = pitch, desired_P = 0, intThreshold_P = 1, driveValue_P;
+  float actual_P = ((int)pitch), desired_P = -7, intThreshold_P = 1.7, driveValue_P;
   float error_P = desired_P - actual_P;
   float P_P, I_P, D_P;
-  float kP_P = 1.7, kI_P = .005, kD_P = 8; //Gain values  1.1, .005, 7
-  float scaleFactor_P = 1;
+  float kP_P = 1.1, kI_P = .025, kD_P = .27; //Gain values  1.7, .005, 8 // 1.2, .009, .185, .22
+  float scaleFactor_P = .8;
   
-  if ((abs(error_P < intThreshold_P) && (pitch > 3.5)) || (abs(error_P > intThreshold_P) && (pitch < -3.5))) { //Stop integral windup
+  if ((abs(error_P < intThreshold_P)) || (abs(error_P > intThreshold_P))) { //Stop integral windup
     integral_P += error_P;
   } else {
+    integral_P += intThreshold_P;
+  }
+  
+  if (motorsOn == false) {
     integral_P = 0;
   }
   
-  if ((pitch < 4) && (pitch > -4)) {
+  
+  
+  /*if ((roll < 4) && (roll > -4)) {
     kD_P = 12;
   }
   
-  if ((pitch < 3) && (pitch > -3)) {
-    kP_P = 1.2;
-  }
+  if ((roll < 1) && (roll > -1)) {
+    kP_P = 0;
+  }*/
   
   //Calculate P K and I
   P_P = error_P * kP_P;
   I_P = integral_P * kI_P;
-  D_P = ((int)lastActual_P - (int)actual_P) * kD_P;
+  //D_P = ((int)lastActual_P - (int)actual_P) * kD_P;
+  D_P = gy * kD_P * -1;
   driveValue_P = P_P + I_P + D_P;
   driveValue_P = driveValue_P * scaleFactor_P; //Used to get end value to desired range;
   lastActual_P = actual_P;
@@ -158,40 +169,47 @@ void loop() {
   
   if (driveValue_P > 0) {
     change_P = driveValue_P / 2;
-    motor1Value_s = motor1Value + change_P;
     motor3Value_s = motor3Value - change_P;
+    motor1Value_s = motor1Value + change_P;
   } else {
     change_P = (driveValue_P * -1) / 2;
-    motor1Value_s = motor1Value - change_P;
     motor3Value_s = motor3Value + change_P;
+    motor1Value_s = motor1Value - change_P;
   }
   //End pitch section
   
   //Start roll section
-  float actual_R = roll, desired_R = 0, intThreshold_R = 1, driveValue_R;
+  float actual_R = (int)roll, desired_R = 0, intThreshold_R = .5, driveValue_R;
   float error_R = desired_R - actual_R;
   float P_R, I_R, D_R;
-  float kP_R = 1.7, kI_R = .005, kD_R = 8; //Gain values  1.1, 0, 7
+  float kP_R = 1.2, kI_R = .009, kD_R = 0.185; //Gain values  1.7, .005, 8
   float scaleFactor_R = 1;
   
-  if ((abs(error_R < intThreshold_R) && (roll > 3.5)) || (abs(error_R > intThreshold_R) && (roll < -3.5))) { //Stop integral windup
+  if ((abs(error_R < intThreshold_R)) || (abs(error_R > intThreshold_R))) { //Stop integral windup
     integral_R += error_R;
   } else {
+    integral_R += intThreshold_R;
+  }
+  
+  if (motorsOn == false) {
     integral_R = 0;
   }
   
-  if ((roll < 4) && (roll > -4)) {
+  
+  
+  /*if ((roll < 4) && (roll > -4)) {
     kD_R = 12;
   }
   
-  if ((roll < 3) && (roll > -3)) {
-    kP_R = 1.2;
-  }
+  if ((roll < 1) && (roll > -1)) {
+    kP_R = 0;
+  }*/
   
   //Calculate P K and I
   P_R = error_R * kP_R;
   I_R = integral_R * kI_R;
-  D_R = ((int)lastActual_R - (int)actual_R) * kD_R;
+  //D_R = ((int)lastActual_R - (int)actual_R) * kD_R;
+  D_R = gz * kD_R;
   driveValue_R = P_R + I_R + D_R;
   driveValue_R = driveValue_R * scaleFactor_R; //Used to get end value to desired range;
   lastActual_R = actual_R;
@@ -221,11 +239,11 @@ void loop() {
   //*ERASE*
   
   Serial.print(motor1Value_s); Serial.print("\t");
-  Serial.print(motor2Value); Serial.print("\t");
+  Serial.print(motor2Value_s); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
-  Serial.print(motor4Value); Serial.print("\t");
-  Serial.print(pitch); Serial.print("\t");
-  Serial.println(kD_P);
+  Serial.print(motor4Value_s); Serial.print("\t");
+  Serial.print(actual_P); Serial.print("\t");
+  Serial.println(I_P);
   
   delay(30); //*ERASE*
   
@@ -240,9 +258,11 @@ void loop() {
   if (motor1Value > 30 && motor2Value >= 0 && motor3Value > 30 && motor4Value >= 0)  {
     ESC1.write(motor1Value_s); ESC2.write(motor2Value_s);
     ESC3.write(motor3Value_s); ESC4.write(motor4Value_s);
+    motorsOn = true;
   } else {
     ESC1.write(0); ESC2.write(0);
     ESC3.write(0); ESC4.write(0);
+    motorsOn = false;
   }
   
   delay(1);  //Delay 1 millisecond to wait for new data
