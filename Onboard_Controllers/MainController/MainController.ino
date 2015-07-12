@@ -130,7 +130,7 @@ void loop() {
   
   //Start of PID controller
   //Start pitch section
-  float actual_P = ((int)pitch), desired_P = -7, intThreshold_P = 1.7, driveValue_P;
+  float actual_P = ((int)pitch), desired_P = -4, intThreshold_P = 1.7, driveValue_P;
   float error_P = desired_P - actual_P;
   float P_P, I_P, D_P;
   float kP_P = 1.1, kI_P = .025, kD_P = .27; //Gain values  1.7, .005, 8 // 1.2, .009, .185, .22
@@ -179,7 +179,7 @@ void loop() {
   //End pitch section
   
   //Start roll section
-  float actual_R = (int)roll, desired_R = 0, intThreshold_R = .5, driveValue_R;
+  float actual_R = (int)roll, desired_R = 3, intThreshold_R = .5, driveValue_R;
   float error_R = desired_R - actual_R;
   float P_R, I_R, D_R;
   float kP_R = 1.2, kI_R = .009, kD_R = 0.185; //Gain values  1.7, .005, 8
@@ -242,7 +242,7 @@ void loop() {
   Serial.print(motor2Value_s); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
   Serial.print(motor4Value_s); Serial.print("\t");
-  Serial.print(actual_P); Serial.print("\t");
+  Serial.print(roll); Serial.print("\t");
   Serial.println(I_P);
   
   delay(30); //*ERASE*
@@ -256,8 +256,8 @@ void loop() {
   
   //Write motor values to motors
   if (motor1Value > 30 && motor2Value >= 0 && motor3Value > 30 && motor4Value >= 0)  {
-    ESC1.write(motor1Value_s); ESC2.write(motor2Value_s);
-    ESC3.write(motor3Value_s); ESC4.write(motor4Value_s);
+    ESC1.write(motor1Value_s); ESC2.write(motor2Value_s + 2);
+    ESC3.write(motor3Value_s); ESC4.write(motor4Value_s + 2);
     motorsOn = true;
   } else {
     ESC1.write(0); ESC2.write(0);
