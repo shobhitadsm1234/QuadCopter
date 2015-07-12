@@ -146,16 +146,6 @@ void loop() {
     integral_P = 0;
   }
   
-  
-  
-  /*if ((roll < 4) && (roll > -4)) {
-    kD_P = 12;
-  }
-  
-  if ((roll < 1) && (roll > -1)) {
-    kP_P = 0;
-  }*/
-  
   //Calculate P K and I
   P_P = error_P * kP_P;
   I_P = integral_P * kI_P;
@@ -196,15 +186,6 @@ void loop() {
   }
   
   
-  
-  /*if ((roll < 4) && (roll > -4)) {
-    kD_R = 12;
-  }
-  
-  if ((roll < 1) && (roll > -1)) {
-    kP_R = 0;
-  }*/
-  
   //Calculate P K and I
   P_R = error_R * kP_R;
   I_R = integral_R * kI_R;
@@ -229,14 +210,6 @@ void loop() {
   
   //End of PID controller
   
-  /*
-  //Print out pitch, roll, and driveValue
-  Serial.print(pitch); Serial.print("\t");
-  Serial.print(roll); Serial.print("\t");
-  Serial.println(driveValue);*/
-  
-  
-  //*ERASE*
   
   Serial.print(motor1Value_s); Serial.print("\t");
   Serial.print(motor2Value_s); Serial.print("\t");
