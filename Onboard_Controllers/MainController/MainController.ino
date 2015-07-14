@@ -61,57 +61,80 @@ float angle_pitch, angle_roll, timeBeginPitch = millis(), timeBeginRoll = millis
 //Motor values from controller
 int motor1Value = 0, motor2Value = 0, motor3Value = 0, motor4Value = 0;
 
+//Angle values from controller
+int UDValue = 0, LRValue = 0;
+
 //Variables for PID control loop
 float lastActual_P, integral_P, lastActual_R, integral_R;
 
 void loop() {
   int motor1Value_s = 0, motor2Value_s = 0, motor3Value_s = 0, motor4Value_s = 0;
   if (Serial.available()) {
-    char data[20];  //Stores data coming in over serial until it can be processed
-    int i=0;  //Counter variable to go through new serial data with;
+    char data[13];  //Stores data coming in over serial until it can be processed
+    int i = 0;  //Counter variable to go through new serial data with;
     
-    delay(15); //Wait to receive all data
+    delay(15); //Wait to receive all data //15
     
-    while(Serial.available() && i<20) {  //Loop through all characters in serial data
-      data[i++] = Serial.read();  //Add new data to "data" one character at a time
+    while(Serial.available() && i<13) {  //Loop through all characters in serial data
+      data[i] = Serial.read();  //Add new data to "data" one character at a time
+      if(data[i] == 'H') {
+        goto bailout;
+      }
+      if(data[i] == '/n') {
+        goto cont;
+      }
+      i++;
+    }
+    
+    cont:
+    
+    while(Serial.available() > 0) {
+      char r = Serial.read();
     }
     
     checkSignal = 0;  //Reset time since last signal was received
-    data[i++] = '\0';  //remove
+    data[i] = '\0';  //remove
 
-    if(i>5) {
-      char motor[4][5];  //Create two dimensional array holding all 4 motor values
-      int currentMotor = 0, consecNums = 0;
+    if(i>4) {
+      char controlData[3][4];  //Create two dimensional array holding all 3 data values
+      int currentData = 0, consecNums = 0;
       
-      //Set all of motor 4 to null in order to illiminate fluctuations du to it being end of data stream
-      for (int b = 0; b < 4; b++) {
-        motor[3][b] = '\0';
+      //Set all of control data to null in order to illiminate fluctuations do to it being end of data stream
+      for (int b = 0; b < 3; b++) {
+        controlData[0][b] = '\0';
+        controlData[1][b] = '\0';
+        controlData[2][b] = '\0';
       }
     
       for(int a = 0; a <= i; a++) {  //Go through all data received
         
         if (data[a] == ',') {  //If a comma is found figure out what motor is currently being worked on and move to next
-          motor[currentMotor][consecNums] = '\0';
-          currentMotor++;
+          controlData[currentData][consecNums] = '\0';
+          currentData++;
           consecNums = 0;
         } else if (data[a] == '\0' || data[a] == '\n') {  //If a null character is found end data parsing
-          motor[4][consecNums] = '\0';
-          break;
+          controlData[2][consecNums] = '\0';
+          goto exit;
         } else if (data[a] == 'H') {
           goto bailout;
         } else {  //If anything else is found add it to the current motors value
-          motor[currentMotor][consecNums] = data[a];
+          controlData[currentData][consecNums] = data[a];
           consecNums++;
         }
       }
+      
+      exit:
+      
+      Serial.print('d'); Serial.println(data);
     
       //Convert character arrays to strings
-      String holdMot1 = String(motor[0]); String holdMot2 = String(motor[1]);
-      String holdMot3 = String(motor[2]); String holdMot4 = String(motor[3]);
+      String holdMot = String(controlData[0]); String holdUD = String(controlData[1]);
+      String holdLR = String(controlData[2]);
       
-      //Convert strings to integers and store in motor value variables
-      motor1Value = holdMot1.toInt(); motor2Value = holdMot2.toInt();
-      motor3Value = holdMot3.toInt(); motor4Value = holdMot4.toInt();
+      //Convert strings to integers and store in motor and angle value variables
+      motor1Value = holdMot.toInt(); motor2Value = holdMot.toInt();
+      motor3Value = holdMot.toInt(); motor4Value = holdMot.toInt();
+      UDValue = holdUD.toInt(); LRValue = holdLR.toInt();
     }
   }
   
@@ -130,7 +153,7 @@ void loop() {
   
   //Start of PID controller
   //Start pitch section
-  float actual_P = ((int)pitch), desired_P = -4, intThreshold_P = 1.7, driveValue_P;
+  float actual_P = ((int)pitch), desired_P = -4 + UDValue, intThreshold_P = 1.7, driveValue_P;
   float error_P = desired_P - actual_P;
   float P_P, I_P, D_P;
   float kP_P = 1.1, kI_P = .025, kD_P = .27; //Gain values  1.7, .005, 8 // 1.2, .009, .185, .22
@@ -169,7 +192,7 @@ void loop() {
   //End pitch section
   
   //Start roll section
-  float actual_R = (int)roll, desired_R = 3, intThreshold_R = .5, driveValue_R;
+  float actual_R = (int)roll, desired_R = 3 - LRValue, intThreshold_R = .5, driveValue_R;
   float error_R = desired_R - actual_R;
   float P_R, I_R, D_R;
   float kP_R = 1.2, kI_R = .009, kD_R = 0.185; //Gain values  1.7, .005, 8
@@ -215,8 +238,8 @@ void loop() {
   Serial.print(motor2Value_s); Serial.print("\t");
   Serial.print(motor3Value_s); Serial.print("\t");
   Serial.print(motor4Value_s); Serial.print("\t");
-  Serial.print(roll); Serial.print("\t");
-  Serial.println(I_P);
+  Serial.print(motor1Value); Serial.print("\t");
+  Serial.println(UDValue);
   
   delay(30); //*ERASE*
   
@@ -229,8 +252,8 @@ void loop() {
   
   //Write motor values to motors
   if (motor1Value > 30 && motor2Value >= 0 && motor3Value > 30 && motor4Value >= 0)  {
-    ESC1.write(motor1Value_s); ESC2.write(motor2Value_s + 2);
-    ESC3.write(motor3Value_s); ESC4.write(motor4Value_s + 2);
+    ESC1.write(motor1Value_s); ESC2.write(motor2Value_s + 1);
+    ESC3.write(motor3Value_s); ESC4.write(motor4Value_s + 1);
     motorsOn = true;
   } else {
     ESC1.write(0); ESC2.write(0);

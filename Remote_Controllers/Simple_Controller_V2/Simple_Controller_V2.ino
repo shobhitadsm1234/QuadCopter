@@ -24,40 +24,55 @@ void setup() {
 }
 
 ISR(TIMER1_COMPA_vect) {
-  delay(10);
-  Serial.println("H");
-  delay(10);
+  Serial.print("H");
 }
 
 //Setup variables
 int lastPotValue = 0;
+int lastUDValue = 0;
+int lastLRValue = 0;
 
 void loop() {
   int potValue = analogRead(A0); //Read from potentiometer
+  int UDPot = analogRead(A1) + 17;
+  int LRPot = analogRead(A2) + 2;
+  
+  UDPot = map(UDPot, 0, 1023, -10, 10);
+  LRPot = map(LRPot, 0, 1023, -10, 10);
   potValue = map(potValue, 0, 1023, 0, 149); //Map potentiometer value to acceptable motor values
   
-  if (potValue > (lastPotValue + 1) || potValue < (lastPotValue-1)) { //Check to see if the value has changed since the last run of the loop
+  
+  
+  if (potValue > (lastPotValue + 1) || potValue < (lastPotValue-1) || UDPot != lastUDValue || LRPot != lastLRValue) { //Check to see if the value has changed since the last run of the loop
     lastPotValue = potValue;
+    lastUDValue = UDPot;
+    lastLRValue = LRPot;
     
-    char str[4];
+    Serial.print(potValue); Serial.print(",");
+    Serial.print(UDPot); Serial.print(",");
+    Serial.print(LRPot); Serial.print("\n");
+  
+    /*char altStr[4];
+    char UDStr[3];
+    char LRStr[3];
     
-    itoa(potValue, str, 10); //Convert integer to string for sending
+    itoa(potValue, altStr, 10); //Convert integer to string for sending
+    itoa(UDPot, UDStr, 10);
+    itoa(LRPot, LRStr, 10);
     
     char toBeSent[40]; //Create variable to hold string to send
     toBeSent[0] = '\0';
     
     //Bulid string to be sent
-    strcat(toBeSent, str);
+    strcat(toBeSent, altStr);
     strcat(toBeSent, ",");
-    strcat(toBeSent, str);
+    strcat(toBeSent, UDStr);
     strcat(toBeSent, ",");
-    strcat(toBeSent, str);
-    strcat(toBeSent, ",");
-    strcat(toBeSent, str);
+    strcat(toBeSent, LRStr);
     strcat(toBeSent, "\n");
     
-    Serial.print(toBeSent);
+    Serial.print(toBeSent);*/
   }
   
-  delay(50);
+  delay(100);
 }
